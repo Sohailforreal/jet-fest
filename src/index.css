@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  /* The Main Hero Background Color - CRITICAL for Dark Mode */
+  background-color: #050816; 
+  color: white;
+  overflow-x: hidden;
+}
+
+/* 1. THE SUBTLE PREMIUM BACKGROUND */
+.cyber-gradient {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -10;
+  
+  /* 1. The Deep Base Color (Must be here) */
+  background-color: #050816; 
+  
+  /* 2. Your Specific Subtle Spots */
+  background-image: 
+    /* Indigo Transparent at Top Left */
+    radial-gradient(circle at 15% 30%, #3730A333 0%, transparent 40%),
+    
+    /* Fuchsia Transparent at Top Right */
+    radial-gradient(circle at 85% 20%, #DD45E033 0%, transparent 40%),
+    
+    /* Gold Transparent at Bottom Center (Subtle Glow) */
+    radial-gradient(circle at 50% 90%, #FACC6B33 0%, transparent 50%);
+    
+  /* Slower, more elegant movement */
+  background-size: 120% 120%;
+  animation: bg-breathe 20s ease-in-out infinite alternate;
+}
+
+@keyframes bg-breathe {
+  0% { background-size: 100% 100%; }
+  100% { background-size: 120% 120%; }
+}
+
+/* 2. MINIMALIST GRID (Barely visible texture) */
+.grid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -5;
+  
+  /* Very faint lines (0.03 opacity) */
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  
+  /* Fade out edges so it focuses on center */
+  -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  
+  pointer-events: none;
+}
