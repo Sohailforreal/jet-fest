@@ -1,12 +1,16 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
+import ChromaVideo from './ChromaVideo';
+import Popup from './Popup';
 
+// IMPORTANT: Ensure these images exist in public/images/
+// If they are in public/images, the path should be "/images/name.jpg"
 const CARDS = [
-  "./public/images/img1.jpg",
-  "./public/images/img2.jpg",
-  "./public/images/img3.jpg",
-  "./public/images/img4.jpg",
+  "/images/img3.jpg",
+  "/images/img2.jpg",
+  "/images/img1.jpg",
+  "/images/img4.jpg",
 ];
 
 export default function HeroGsap() {
@@ -14,171 +18,144 @@ export default function HeroGsap() {
   const cardsRef = useRef([]);
   const logoGroupRef = useRef();
   const textRef = useRef();
-  const videoRef = useRef(null);
+  const headerRef = useRef(); 
+  
+  // Popup State
+  const [isPopupOpen, setPopupOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
-  // --- LOGIC 1: Video Slow Motion Ending ---
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+  const handleCardClick = (imgSrc) => {
+    setSelectedImage(imgSrc);
+    setPopupOpen(true);
+  };
 
-    const handleTimeUpdate = () => {
-      // If video has less than 1.5 seconds left...
-      if (video.duration - video.currentTime < 1.5) {
-        // Smoothly tween the playback speed from 1 to 0.1
-        gsap.to(video, { 
-          playbackRate: 0.4, 
-          duration: 1, 
-          ease: "power2.out" 
-        });
-      }
-    };
-
-    video.addEventListener("timeupdate", handleTimeUpdate);
-    return () => video.removeEventListener("timeupdate", handleTimeUpdate);
-  }, []);
-
-  // --- LOGIC 2: Entrance & Floating Animations ---
   useGSAP(() => {
     const tl = gsap.timeline();
-
-    // 1. Setup Initial States (Hidden & Centered)
-    gsap.set(cardsRef.current, {
+    
+    // 1. Setup Initial States
+    // Note: We set left/top to 50% here for GSAP, but the CSS class handles the hard positioning
+    gsap.set(cardsRef.current, { 
       xPercent: -50, 
-      yPercent: -50,
-      left: "50%",
-      top: "50%",
-      scale: 0,
-      opacity: 0,
-      y: 400 // Push down off-screen initially
+      yPercent: -50, 
+      scale: 0, 
+      opacity: 0, 
+      y: 400 
     });
-
-    gsap.set(logoGroupRef.current, { y: -50, opacity: 0 });
+    
+    gsap.set(logoGroupRef.current, { y: -30, opacity: 0 });
     gsap.set(textRef.current, { y: 50, opacity: 0 });
+    gsap.set(headerRef.current, { y: -20, opacity: 0 });
 
-    // 2. ENTRANCE SEQUENCE
-    tl.to(logoGroupRef.current, {
-      y: 0,
-      opacity: 1,
-      duration: 1,
-      scale: 1.12,
-      ease: "power3.out"
-    })
-
-    .to(cardsRef.current, {
-      duration: 1.2,
-      y: (i) => {
-        // Arch: Middle cards higher (-20), outer cards lower (10)
-        return [10, -20, -20, 10][i];
-      },
-      x: (i) => {
-        // Horizontal Spread
-        return [-150, -50, 50, 150][i];
-      },
-      rotation: (i) => {
-        // Fan Angle
-        return [-15, -5, 5, 15][i];
-      },
-      scale: 1,
-      opacity: 1,
-      ease: "back.out(1.4)", // Snappy bounce effect
-      stagger: 0.1,
-    }, "-=0.5")
-
-    .to(textRef.current, {
-      y: 0,
-      opacity: 1,
-      duration: 0.8,
-      ease: "power2.out"
-    }, "-=0.8");
-
-    // 3. CONTINUOUS FLOATING LOOP
-    // Starts after entrance is complete
-    gsap.to(cardsRef.current, {
-      y: "+=15", // Gently float down 15px
-      duration: 2.5,
-      ease: "sine.inOut",
-      yoyo: true,
-      repeat: -1,
-      stagger: {
-        each: 0.15,
-        from: "center"
-      },
+    // 2. Animation Sequence
+    // Header comes in first
+    tl.to(headerRef.current, { y: 0, opacity: 1, duration: 1, ease: "power3.out" })
+      
+      // Then Logo
+      .to(logoGroupRef.current, { y: 0, opacity: 1, duration: 1, scale: 1.12, ease: "power3.out" }, "-=0.5")
+      
+      // Then Cards Explosion
+      .to(cardsRef.current, { 
+        duration: 1.2, 
+        y: (i) => [10, -20, -20, 10][i], 
+        x: (i) => [-150, -50, 50, 150][i], 
+        rotation: (i) => [-15, -5, 5, 15][i], 
+        scale: 1, 
+        opacity: 1, 
+        ease: "back.out(1.4)", 
+        stagger: 0.1 
+      }, "-=0.5")
+      
+      // Then Bottom Text
+      .to(textRef.current, { y: 0, opacity: 1, duration: 0.8, ease: "power2.out" }, "-=0.8");
+    
+    // 3. Continuous Floating Loop
+    gsap.to(cardsRef.current, { 
+      y: "+=15", 
+      duration: 2.5, 
+      ease: "sine.inOut", 
+      yoyo: true, 
+      repeat: -1, 
+      stagger: { each: 0.15, from: "center" }, 
       delay: 1.5 
     });
 
   }, { scope: containerRef });
 
   return (
-    <div ref={containerRef} className="relative min-h-[90vh] w-full flex flex-col items-center pt-10 pb-10 gap-2 overflow-hidden">
-      
-      {/* 1. VIDEO LOGO + DATES */}
-      <div ref={logoGroupRef} className="z-20 relative flex flex-col items-center">
+    <>
+      <div ref={containerRef} className="relative min-h-[90vh] w-full flex flex-col items-center pt-10 pb-10 gap-2 overflow-hidden">
         
-        {/* VIDEO ELEMENT */}<video
-  ref={videoRef}
-  autoPlay
-  muted
-  playsInline
-  className="w-82 h-82 md:w-96 md:h-96 object-contain pointer-events-none"
-  style={{
-    // 1. Aggressive Blending
-    mixBlendMode: 'lighten', 
-    
-    // 2. High Contrast (Crushes dark gray to black)
-    filter: 'contrast(1.2) brightness(1.1)', 
-    
-    // 3. THE MASK: Hides the rectangular borders of the video
-    // This creates a soft circle so you don't see the "box"
-    WebkitMaskImage: 'radial-gradient(circle at center, black 40%, transparent 70%)',
-    maskImage: 'radial-gradient(circle at center, black 40%, transparent 70%)'
-  }}
->
-  <source src="/logo.mp4" type="video/mp4" />
-</video>
-
-       
-        
-        {/* DATES BADGE */}
-        <div className="mt-2 px-4 py-1 border border-jashn-gold/30 rounded-full bg-black/40 backdrop-blur-sm">
-          <span className="font-mono text-sm md:text-lg tracking-[0.2em] font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-jashn-gold drop-shadow-md">
-            02 FEB - 07 FEB 2026
-          </span>
+        {/* --- COLLEGE HEADER (SERIF FONTS) --- */}
+        <div ref={headerRef} className="z-30 text-center flex flex-col items-center mb-2 px-4">
+          <h3 className="text-xs md:text-sm font-serif text-gray-300 tracking-widest uppercase opacity-90 mb-1">
+            H.J. Thim Trust's
+          </h3>
+          <h1 className="text-2xl md:text-5xl font-serif font-bold text-white tracking-wide leading-tight drop-shadow-lg">
+            Theem College Of Engineering
+          </h1>
+          <p className="text-[10px] md:text-xs font-serif text-gray-400 opacity-80 mt-2 tracking-wider">
+            Village Betegaon, Chillar Road, Boisar (E)
+          </p>
+          {/* Decorative Divider */}
+          <div className="w-24 h-px bg-gradient-to-r from-transparent via-jashn-gold/50 to-transparent mt-4"></div>
         </div>
-      </div>
 
-      {/* 2. THE GALLERY STAGE */}
-      <div className="relative w-full h-[280px] z-10">
-        {CARDS.map((src, i) => (
-          <div
-            key={i}
-            ref={el => cardsRef.current[i] = el}
-            // Absolute positioning with center anchoring
-            className="absolute left-1/2 top-1/2 w-32 h-48 md:w-40 md:h-56 rounded-xl border-2 border-white/20 shadow-2xl overflow-hidden bg-black"
-          >
-            <img 
-              src={src} 
-              alt="Event" 
-              className="w-full h-full object-cover filter brightness-90"
-            />
-            {/* Glossy Reflection */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent pointer-events-none"></div>
+        {/* --- LOGO SECTION --- */}
+        <div ref={logoGroupRef} className="z-20 relative flex flex-col items-center">
+          <ChromaVideo 
+            src="/logo.mp4" 
+            className="w-64 h-64 md:w-96 md:h-96" 
+            endingSpeed={true} 
+          />
+          <div className="mt-2 px-4 py-1 border border-jashn-gold/30 rounded-full bg-black/40 backdrop-blur-sm">
+            <span className="font-mono text-sm md:text-lg tracking-[0.2em] font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-jashn-gold drop-shadow-md">
+              02 FEB - 07 FEB 2026
+            </span>
           </div>
-        ))}
+        </div>
+
+        {/* --- GALLERY STAGE --- */}
+        <div className="relative w-full h-[280px] z-10">
+          {CARDS.map((src, i) => (
+            <div
+              key={i}
+              ref={el => cardsRef.current[i] = el}
+              onClick={() => handleCardClick(src)}
+              // CRITICAL FIX: !left-1/2 !top-1/2 ensures Swiper styles don't break this
+              className="absolute !left-1/2 !top-1/2 w-32 h-48 md:w-40 md:h-56 rounded-xl border-2 border-white/20 shadow-2xl overflow-hidden bg-black cursor-pointer hover:border-jashn-gold transition-colors z-30"
+            >
+              <img 
+                src={src} 
+                alt="Event" 
+                className="w-full h-full object-cover filter brightness-90 hover:brightness-110 transition-all" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent pointer-events-none"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* --- BOTTOM TEXT --- */}
+        <div ref={textRef} className="z-20 text-center mt-auto px-4">
+          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase leading-tight">
+            EVENT REGISTRATIONS <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-jashn-gold to-orange-500">
+              ARE LIVE
+            </span>
+          </h1>
+          <p className="text-gray-400 mt-4 max-w-sm mx-auto text-sm md:text-base">
+             Battle for glory. Register for Inter-College Events now.
+          </p>
+        </div>
+
       </div>
 
-      {/* 3. THE TEXT */}
-      <div ref={textRef} className="z-20 text-center mt-auto px-4">
-        <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase leading-tight">
-          COORDINATOR FORMS <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-jashn-gold to-orange-500">
-            ARE LIVE
-          </span>
-        </h1>
-        <p className="text-gray-400 mt-4 max-w-sm mx-auto text-sm md:text-base">
-            Join the team behind the legacy. Apply now.
-        </p>
-      </div>
-
-    </div>
+      {/* --- POPUP COMPONENT --- */}
+      {isPopupOpen && (
+        <Popup 
+          activeImage={selectedImage} 
+          onClose={() => setPopupOpen(false)} 
+        />
+      )}
+    </>
   );
 }
